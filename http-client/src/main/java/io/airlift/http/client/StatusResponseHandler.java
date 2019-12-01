@@ -21,6 +21,7 @@ import io.airlift.http.client.StatusResponseHandler.StatusResponse;
 
 import javax.annotation.Nullable;
 
+import java.io.IOException;
 import java.util.List;
 
 import static io.airlift.http.client.ResponseHandlerUtils.propagate;
@@ -28,15 +29,24 @@ import static io.airlift.http.client.ResponseHandlerUtils.propagate;
 public class StatusResponseHandler
         implements ResponseHandler<StatusResponse, RuntimeException>
 {
-    private static final StatusResponseHandler statusResponseHandler = new StatusResponseHandler();
+    private static final StatusResponseHandler statusResponseHandler = new StatusResponseHandler(false);
+
+    // This is just for demonstration
+    private final boolean shouldClose;
 
     public static StatusResponseHandler createStatusResponseHandler()
     {
         return statusResponseHandler;
     }
 
-    private StatusResponseHandler()
+    public static StatusResponseHandler createStatusResponseHandler(boolean shouldClose)
     {
+        return new StatusResponseHandler(shouldClose);
+    }
+
+    private StatusResponseHandler(boolean shouldClose)
+    {
+        this.shouldClose = shouldClose;
     }
 
     @Override
@@ -48,7 +58,16 @@ public class StatusResponseHandler
     @Override
     public StatusResponse handle(Request request, Response response)
     {
-        return new StatusResponse(response.getStatusCode(), response.getStatusMessage(), response.getHeaders());
+        StatusResponse result = new StatusResponse(response.getStatusCode(), response.getStatusMessage(), response.getHeaders());
+        if (shouldClose) {
+            try {
+                response.getInputStream().close();
+            } catch (IOException e) {
+                e.printStackTrace(System.out);
+                // Ignore
+            }
+        }
+        return result;
     }
 
     public static class StatusResponse

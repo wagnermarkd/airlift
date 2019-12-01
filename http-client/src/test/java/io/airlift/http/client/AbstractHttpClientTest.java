@@ -181,11 +181,12 @@ public abstract class AbstractHttpClientTest
         }
     }
 
-    @Test(enabled = false, description = "This takes over a minute to run")
+    @Test(enabled = true, description = "This takes over a minute to run")
     public void test100kGets()
             throws Exception
     {
         URI uri = baseURI.resolve("/road/to/nowhere?query");
+        servlet.setResponseBody("non-empty");
         Request request = prepareGet()
                 .setUri(uri)
                 .addHeader("foo", "bar")
@@ -195,7 +196,11 @@ public abstract class AbstractHttpClientTest
 
         for (int i = 0; i < 100_000; i++) {
             try {
-                int statusCode = executeRequest(request, createStatusResponseHandler()).getStatusCode();
+              // This blocks on TestJettyHttpClient
+              // StatusResponseHandler statusResponseHandler = createStatusResponseHandler(false);
+              // This fails with 'java.net.BindException: Cannot assign requested address'
+              StatusResponseHandler statusResponseHandler = createStatusResponseHandler(true);
+              int statusCode = executeRequest(request, statusResponseHandler).getStatusCode();
                 assertEquals(statusCode, 200);
             }
             catch (Exception e) {
